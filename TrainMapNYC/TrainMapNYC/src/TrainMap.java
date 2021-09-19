@@ -18,7 +18,19 @@ public class TrainMap {
         }
         Station(String n, Station[] adj){
             this.name = n;
-            adjacencyList.addAll(Arrays.asList(adj));
+
+            ArrayList<Station> set = new ArrayList<>();
+            for(Station a : adj){
+                if(!set.contains(a)){
+                    set.add(a);
+                }
+            }
+
+            adjacencyList.addAll(set);
+        }
+        Station(String n, ArrayList<Station> adj){
+            this.name = n;
+            this.adjacencyList = adj;
         }
 
         public String toString(){return name;}
@@ -49,9 +61,19 @@ public class TrainMap {
                 addAdj(s);
             }
         }
-        public Station getAdj(int i){return adjacencyList.get(i);}
+        public void addAdj(Station[] stations){
+            for(Station s : stations){
+                addAdj(s);
+            }
+        }
 
-        public boolean isCenter(){return false;}
+        public void print(){
+            System.out.print(name+": ");
+            for(Station s : adjacencyList){
+                System.out.println(s+": "+s.adjacencyList);
+            }
+            System.out.println();
+        }
     }
 
     private static class TrainLine {
@@ -71,6 +93,16 @@ public class TrainMap {
 
         public void add(String name){
             Station newStop = new Station(name, tail, null);
+            stations.add(newStop);
+            if(head == null){
+                head = newStop;
+            }else{
+                tail.setNext(newStop);
+            }
+            tail = newStop;
+            size++;
+        }
+        public void add(Station newStop){
             stations.add(newStop);
             if(head == null){
                 head = newStop;
@@ -107,22 +139,14 @@ public class TrainMap {
                     System.out.println(current+": "+current.adjacencyList);
                 }else{
                     System.out.print(current+": "+current.adjacencyList +"\n");
-                    for(int i = 0; i < current.adjacencyList.size(); i++) {
-                        Station cur = current.adjacencyList.get(i);
+                    for(Station cur : current.adjacencyList) {
 
                         if (cur != null) {
-                            if (cur.prev() != null) {
-                                while (cur.prev() != null) {
-                                    cur = cur.prev();
-                                }
-                            }
-
                             if (!cur.name.equals(head.name)) {
                                 System.out.print("<");
                                 while (cur != null) {
 
-                                    if (current.adjacencyList.contains(cur)) System.out.print("((" + cur + ")) <-> ");
-                                    if (!current.adjacencyList.contains(cur)) System.out.print(cur + " <-> ");
+                                    System.out.print(cur + " <-> ");
 
                                     cur = cur.next();
                                 }
@@ -132,74 +156,203 @@ public class TrainMap {
                     }
                 }
                 current = current.next();
-
             }
             System.out.println();
         }
 
+        public void printReverse(){
+            Station current = tail;
+            while (current != null){
 
+                if(current.adjacencyList.size() <= 2){
+                    System.out.println(current+": "+current.adjacencyList);
+                }else{
+                    System.out.print(current+": "+current.adjacencyList +"\n");
+                    for(Station cur : current.adjacencyList) {
+
+                        if (cur != null) {
+                            if (!cur.name.equals(head.name)) {
+                                System.out.print("<");
+                                while (cur != null) {
+
+                                    System.out.print(cur + " <-> ");
+
+                                    cur = cur.prev();
+                                }
+                                System.out.println(">");
+                            }
+                        }
+                    }
+                }
+
+                current = current.prev();
+            }
+            System.out.println();
+        }
+
+        public ArrayList<Station> stations(){
+            size = stations.size();
+            return stations;
+        }
         public int size(){return size;}
-        public ArrayList<Station> stations(){return stations;}
 
     }
 
     private final ArrayList<Station> VERTICES = new ArrayList<>();
-    private final Station NULL_STATION = new Station("null");
+    private final Station NULL_STATION = new Station("NULL_STATION", VERTICES);
     TrainMap(){
-
     }
 
-    public void Brooklyn(){
-        TrainLine base_lineN = new TrainLine("Coney Island N");
-        TrainLine bayRidge = new TrainLine("Bay Ridge");
-        TrainLine _53rdStreet = new TrainLine("53rd Street");
-        TrainLine coneyIsland_D = new TrainLine("Coney Island D");
-        TrainLine prospectAv = new TrainLine("Prospect Ave");
-        TrainLine coneyIsland_F = new TrainLine("Coney Island F");
-        TrainLine coneyIsland_Q = new TrainLine("Coney Island Q");
-        TrainLine base_line3 = new TrainLine("New Lots Av 3");
-        TrainLine flatBushAve_2 = new TrainLine("FlatBush Av 2");
-        TrainLine easternPkwy = new TrainLine("Eastern Pkwy");
+    public void makeBrooklyn(){
+        TrainLine coneyIsland_N = new TrainLine("Root Coney Island N");
+        TrainLine bayRidge = new TrainLine("Root Bay Ridge");
+        TrainLine _53rdStreet = new TrainLine("Segment 53rd Street");
+        TrainLine coneyIsland_D = new TrainLine("Root Coney Island D");
+        TrainLine prospectAv = new TrainLine("Segment Prospect Ave");
+        TrainLine coneyIsland_F = new TrainLine("Root Coney Island F");
+        TrainLine coneyIsland_Q = new TrainLine("Root Coney Island Q");
+        TrainLine newLots_3 = new TrainLine("Root New Lots Av");
+        TrainLine flatBushAve_2 = new TrainLine("Root FlatBush Av");
+        TrainLine easternPkwy = new TrainLine("Segment Eastern Pkwy");
+        TrainLine nevinsSt = new TrainLine("Segment Nevins Street");
+        TrainLine FarRockaway = new TrainLine("Segment Far Rockaway");
+        TrainLine RockawayPark = new TrainLine("Segment Rockaway Park");
+        TrainLine OzonePark = new TrainLine("Segment Ozone Park");
+        TrainLine RockawayBlvd = new TrainLine("Root Rockaway Blvd");
+        TrainLine CypressHills = new TrainLine("Root Cypress Hills");
+        TrainLine CanarsiePkwy = new TrainLine("Root Canarsie Rockaway Pkwy");
+        TrainLine RockawayAv = new TrainLine("Segment Rockaway Av");
+        TrainLine ChaunceySt = new TrainLine("Segment Chauncey Street");
+        TrainLine BushwickAv = new TrainLine("Segment Bushwick Av");
+        TrainLine JayMetroR = new TrainLine("Segment JayMetroR");
+        TrainLine GreenpointAv = new TrainLine("Root Greenpoint Av");
 
 
-        mergeTops(base_lineN, bayRidge);
-        appendUp(base_lineN, _53rdStreet);
-        mergeTops(base_lineN, coneyIsland_D);
-        appendUp(base_lineN, prospectAv);
-        joinAt(base_lineN, "4 Av- 9 St", coneyIsland_F, "4 Av");
+        mergeHeads(coneyIsland_N, bayRidge);
+        appendUp(coneyIsland_N, _53rdStreet);
+        mergeHeads(coneyIsland_N, coneyIsland_D);
+        appendUp(coneyIsland_N, prospectAv);
+        joinAt(coneyIsland_N, "4 Av- 9 St", coneyIsland_F, "4 Av");
         joinAt(coneyIsland_F,"West 8 St NY Aquarium", coneyIsland_Q, "West 8 St NY Aquarium");
 
 
-        mergeTops(base_line3, flatBushAve_2);
-        appendUp(base_line3, easternPkwy);
+        mergeHeads(newLots_3, flatBushAve_2);
+        appendUp(newLots_3, easternPkwy);
 
 
-        Station AtlanticAvBarclaysCtr = new Station("Atlantic Av- Barclays Ctr", new Station[]{
-                base_lineN.head, base_line3.head, coneyIsland_Q.head});
-        base_lineN.head.addAdj(AtlanticAvBarclaysCtr);
-        base_line3.head.addAdj(AtlanticAvBarclaysCtr);
-        coneyIsland_Q.head.addAdj(AtlanticAvBarclaysCtr);
-        addToVertices(AtlanticAvBarclaysCtr);
+        Station AtlanticAvBarclaysCtr  = updateHeads("Atlantic Av- Barclays Ctr", new TrainLine[]{coneyIsland_N, newLots_3, coneyIsland_Q});
+        Station DeKalbAv = updateHeads("DeKalb Av", new TrainLine[]{coneyIsland_N, coneyIsland_Q});
+
+        linkTail(nevinsSt, AtlanticAvBarclaysCtr);
+
+        DeKalbAv.addAdj(JayMetroR.tail);
+        JayMetroR.tail.setNext(DeKalbAv);
 
 
-/*
-        base_lineN.printForward();
-        //coneyIsland_F.printForward();
-        coneyIsland_Q.printForward();
-        base_line3.printForward();*/
-        printVertices();
+        mergeHeadAt(FarRockaway, "Broad Channel", RockawayPark);
+        mergeTailToHead(RockawayBlvd, OzonePark);
+        Station rock = search(RockawayBlvd, "Rockaway Blvd");
+        Station aqueduct = search(FarRockaway, "Aqueduct Racetrack");
+        rock.addAdj(aqueduct);
+        aqueduct.setPrev(rock);
+
+        Station BroadwayJunction = updateHeads("Broadway Junction", new TrainLine[]{RockawayBlvd, CypressHills, CanarsiePkwy});
+        BroadwayJunction.setPrev(RockawayAv.tail);
+
+
+
+        BroadwayJunction.addAdj(new Station[]{ChaunceySt.tail, BushwickAv.tail});
+        RockawayAv.tail.setNext(BroadwayJunction);
+        ChaunceySt.tail.setNext(BroadwayJunction);
+        BushwickAv.tail.setNext(BroadwayJunction);
+
+        joinAt(RockawayAv, "Hoyt Schermerhorn", GreenpointAv, "Hoyt Schermerhorn");
+
+        mergeTailAt(coneyIsland_F, "Bergen St", GreenpointAv);
+
+
+        Station CourStR = search(JayMetroR, "Court St");
+        Station BoroughHall2 = search(nevinsSt, "Borough Hall");
+        CourStR.addAdj(BoroughHall2);
+        BoroughHall2.addAdj(CourStR);
+
+
+        linkStations(ChaunceySt, "Lorimer St", GreenpointAv, "Metropolitan Av");
+        TrainLine MyrtleWyckoffAvs = new TrainLine("Segment Myrtle");
+
+        linkWithSegment(BushwickAv, "Myrtle Wyckoff Avs", ChaunceySt, "Myrtle Av", MyrtleWyckoffAvs);
+
+
+        Station OceanPkwy = coneyIsland_Q.stations.get(coneyIsland_Q.stations.size()-1);
+        coneyIsland_F.tail.addAdj(OceanPkwy);
+        OceanPkwy.setNext(coneyIsland_F.tail);
+
+
+        coneyIsland_Q.stations.add(coneyIsland_F.tail);
+        coneyIsland_Q.tail = coneyIsland_F.tail;
+
+
+        Station ConeyIslandStillwellAv = new Station("Coney Island Stillwell Av");
+        ConeyIslandStillwellAv.addAdj(new Station[]{coneyIsland_F.tail, coneyIsland_N.tail, coneyIsland_D.tail});
+        ConeyIslandStillwellAv.adjacencyList.add(1, null);
+        updateTails(ConeyIslandStillwellAv, new TrainLine[]{coneyIsland_F, coneyIsland_N, coneyIsland_D});
+
+        addToVertices(ConeyIslandStillwellAv);
 
     }
 
-    private void mergeTops(TrainLine line1, TrainLine line2){
+
+    public Station updateHeads(String name, TrainLine[] trainLines){
+        Station[] heads = new Station[trainLines.length+1];
+        heads[0] = null;
+        for(int i = 1; i < heads.length; i++){
+            heads[i] = trainLines[i-1].head;
+            addToVertices(trainLines[i-1]);
+        }
+        Station bigStation = new Station(name, heads);
+
+        for(TrainLine tl : trainLines){
+            tl.head.setPrev((bigStation));
+            tl.head = bigStation;
+        }
+
+        addToVertices(bigStation);
+
+        return bigStation;
+    }
+
+    public void updateTails(Station station, TrainLine[] lines){
+
+        for(TrainLine t : lines){
+            t.tail.setNext(station);
+            t.tail = station;
+        }
+    }
+
+    private void linkTail(TrainLine t, Station s){
+        t.tail.setNext(s);
+        s.addAdj(t.tail);
+        addToVertices(t); addToVertices(s);
+    }
+    private void mergeHeads(TrainLine line1, TrainLine line2){
         line1.head.addAdj(line2.head);
-        line2.head.addAdj(line1.head);
+        line2.head.setPrev(line1.head);
+
         addToVertices(line1, line2);
     }
+    private void mergeTailToHead(TrainLine line1, TrainLine line2){
+        line1.tail.setNext(line2.head);
+        line2.head.setPrev(line1.tail);
+
+        addToVertices(line1, line2);
+    }
+
     private void appendUp(TrainLine lower, TrainLine upper){
+        lower.head.addAdj(upper.tail);
         upper.tail.setNext(lower.head);
         lower.head.setPrev(upper.tail);
         lower.head = upper.head;
+
         addToVertices(lower, upper);
     }
     private void joinAt(TrainLine t1, String n1, TrainLine t2, String n2){
@@ -210,13 +363,40 @@ public class TrainMap {
         if(current2 == null) return;
 
         shareAdjacencies(current1, current2);
+
+        addToVertices(t1, t2);
     }
     private void shareAdjacencies(Station station1, Station station2){
         station1.addAdj(new ArrayList<>(Arrays.asList(station2.prev(), station2.next())));
         station2.addAdj(new ArrayList<>(Arrays.asList(station1.prev(), station1.next())));
     }
-    private void shareAdjacencies(Station one, ArrayList<Station> many){
-        for(Station m : many){shareAdjacencies(one, m);}
+    private void mergeHeadAt(TrainLine exists, String name, TrainLine merger){
+        Station station = search(exists, name);
+        station.addAdj(merger.head);
+        merger.head.setPrev(station);
+
+        addToVertices(exists, merger);
+    }
+    private void mergeTailAt(TrainLine exists, String name, TrainLine merger){
+        Station station = search(exists, name);
+        station.addAdj(merger.tail);
+        merger.tail.setNext(station);
+
+        addToVertices(exists, merger);
+    }
+    private void linkWithSegment(TrainLine t1, String n1, TrainLine t2, String n2, TrainLine segment){
+        Station s1 = search(t1, n1);
+        Station s2 = search(t2, n2);
+
+        s1.addAdj(segment.tail.prev());
+        s2.addAdj(segment.head.next());
+
+    }
+    private void linkStations(TrainLine t1, String n1, TrainLine t2, String n2){
+        Station s1 = search(t1, n1);
+        Station s2 = search(t2, n2);
+        s1.addAdj(s2);
+        s2.addAdj(s1);
     }
 
     private Station search(TrainLine trainLine, String name){
@@ -253,11 +433,27 @@ public class TrainMap {
         for(Station s : VERTICES){
             System.out.println(s+":"+s.adjacencyList);
         }
+        System.out.println();
+
+    }
+
+    private void printTails(){
+        for(Station s : VERTICES){
+            if(s.adjacencyList.get(0) == null) System.out.println(s+":"+s.adjacencyList);
+        }
+        System.out.println();
+    }
+
+    private void printHeads(){
+        for(Station s : VERTICES){
+            if(s.adjacencyList.get(1) == null) System.out.println(s+":"+s.adjacencyList);
+        }
+        System.out.println();
     }
 
     public static void main(String[] args){
-        TrainMap map = new TrainMap();
-        map.Brooklyn();
+        TrainMap Brooklyn = new TrainMap();
+        Brooklyn.makeBrooklyn();
     }
 
 }
