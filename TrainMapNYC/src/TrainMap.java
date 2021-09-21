@@ -167,11 +167,12 @@ public class TrainMap {
 
         keyedLines.forEach((K, V) -> {
             replaceDuplicates(K);
+            updateAllStationMaps(V);
         });
 
         printMap();
 
-        /*keyedLines.forEach((K, V) -> {
+      /*  keyedLines.forEach((K, V) -> {
             for(Station v : V[0].stations){
                 System.out.print(v+": ");
                 v.sortedAdjacencies.forEach((Q, W) ->{
@@ -181,6 +182,25 @@ public class TrainMap {
             System.out.println("\n");
         });*/
 
+    }
+
+    public void updateAllStationMaps(TrainLine[] V){
+        for(int i = 0; i < V[0].stations.size(); i++){
+            if(i == 0){
+                updateStationMap(V[0].stations.get(i), null, V[0].stations.get(i+1));
+            }else if(i == V[0].stations.size()-1){
+                updateStationMap(V[0].stations.get(i), V[0].stations.get(i-1), null);
+            }else{
+                updateStationMap(V[0].stations.get(i), V[0].stations.get(i-1), V[0].stations.get(i+1));
+            }
+        }
+    }
+
+    public void updateStationMap(Station station, Station w0, Station w1){
+        station.sortedAdjacencies.forEach((Q, W)-> {
+            W[0] = w0;
+            W[1] = w1;
+        });
     }
 
     public TrainLine makeLine(String filename){
@@ -200,26 +220,6 @@ public class TrainMap {
         }
 
         return line;
-    }
-
-    public void printMap(){
-
-        keyedLines.forEach((K, V) -> {
-            if(V.length ==1) {
-                System.out.print(K + "|| ");
-                for (TrainLine tl : V) {
-                    tl.printForward();
-                }
-            }else{
-                System.out.println(K + "|| ");
-                for (TrainLine tl : V) {
-                    tl.printForward();
-                }
-            }
-
-        });
-
-        System.out.println("--");
     }
 
     public ArrayList<Station> consolidate(char letter){
@@ -294,7 +294,6 @@ public class TrainMap {
                     }
                 }
 
-
                 Station singularity = new Station();
                 StringBuilder links = new StringBuilder();
 
@@ -318,7 +317,6 @@ public class TrainMap {
                 }
 
             }
-
         }
     }
 
@@ -346,6 +344,25 @@ public class TrainMap {
             System.out.println(s+", "+s.adjacencyList);
         }
         System.out.println();
+    }
+
+    public void printMap(){
+        keyedLines.forEach((K, V) -> {
+            if(V.length ==1) {
+                System.out.print(K + "|| ");
+                for (TrainLine tl : V) {
+                    tl.printForward();
+                }
+            }else{
+                System.out.println(K + "|| ");
+                for (TrainLine tl : V) {
+                    tl.printForward();
+                }
+            }
+
+        });
+
+        System.out.println("--");
     }
 
     public static void main(String[] args){
