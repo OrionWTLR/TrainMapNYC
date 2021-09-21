@@ -12,7 +12,7 @@ public class TrainMap {
         TrainLine prospectAvSeg = new TrainLine("Prospect Ave Segment DNR");
         TrainLine coneyIsland_F = new TrainLine("Coney Island F");
         TrainLine coneyIsland_Q = new TrainLine("Coney Island Q");
-/*
+
 
         coneyIsland_N.receiveMergeFrom(bayRidge);
 
@@ -32,7 +32,7 @@ public class TrainMap {
         coneyIsland_N.printForward();
         //coneyIsland_F.printForward();
         coneyIsland_Q.printForward();
-*/
+
 
         coneyIsland_N.printForward();
 
