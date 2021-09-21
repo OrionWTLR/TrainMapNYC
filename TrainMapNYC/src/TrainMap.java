@@ -3,12 +3,12 @@ import java.util.HashMap;
 
 public class TrainMap {
 
-    private static class Station{
+    private static class    Station{
         private String name;
         private char onLine;
         private String linkedLines;
-        private ArrayList<Station> adjacencyList = new ArrayList<>();
-        private HashMap<Character, Station[]> sortedAdjacencies = new HashMap<>();
+        private ArrayList<Station> adjacencies = new ArrayList<>();
+        private final HashMap<Character, Station[]> keyedAdjacencies = new HashMap<>();
 
         Station(){
         }
@@ -17,7 +17,7 @@ public class TrainMap {
         }
         Station(String n, Station prv, Station nxt){
             this.name = n;
-            adjacencyList.add(prv); adjacencyList.add(nxt);
+            adjacencies.add(prv); adjacencies.add(nxt);
         }
         Station(String n, Station[] adj){
             this.name = n;
@@ -29,40 +29,42 @@ public class TrainMap {
                 }
             }
 
-            adjacencyList.addAll(set);
+            adjacencies.addAll(set);
         }
         Station(String n, ArrayList<Station> adj){
             this.name = n;
-            this.adjacencyList = adj;
+            this.adjacencies = adj;
         }
         Station(String n, char ol){
             this.name = n;
             this.onLine = ol;
         }
 
-        public String toString(){return name+" "+linkedLines;}
+        public String toString(){return ""+name+" "+linkedLines+"";}
         public void print(){System.out.print(toString()+", ");}
         //this may be broken if names are supposed to be the same
         public boolean equals(Station station){return name.equals(station.name);}
 
-        public Station next(){return adjacencyList.get(1);}
-        public Station prev(){return adjacencyList.get(0);}
+        public Station next(){return adjacencies.get(1);}
+        public Station prev(){return adjacencies.get(0);}
 
-        public void setNext(Station station){adjacencyList.set(1, station);}
-        public void setPrev(Station station){adjacencyList.set(0, station);}
+        public void setNext(Station station){
+            adjacencies.set(1, station);}
+        public void setPrev(Station station){
+            adjacencies.set(0, station);}
 
         public void addAdj(Station station){
-            if(station == null) {adjacencyList.add(null); return;}
+            if(station == null) {
+                adjacencies.add(null); return;}
 
-            if(adjacencyList.contains(station)) return;
+            if(adjacencies.contains(station)) return;
 
-            for(Station s : adjacencyList){
+            for(Station s : adjacencies){
                 if(s != null && s.equals(station)){
                     return;
                 }
             }
-
-            adjacencyList.add(station);
+            adjacencies.add(station);
         }
         public void addAdj(ArrayList<Station> stations){
             for(Station s : stations){
@@ -77,47 +79,45 @@ public class TrainMap {
     }
 
     private static class TrainLine {
-
         private final String FILE_NAME;
         private final ArrayList<Station> stations = new ArrayList<>();
-        private final ArrayList<String> transfers = new ArrayList<>();
 
         TrainLine(String filename){
             FILE_NAME = filename;
             extractLine(filename);
         }
 
-        public void add(String name, String xfer){
+        public void add(String name, String transfers){
             Station station = new Station(name, FILE_NAME.charAt(0));
             if(stations.size() == 0){
-                station.adjacencyList.add(null);
+                station.adjacencies.add(null);
             }else{
-                stations.get(stations.size()-1).adjacencyList.set(1, station);
-                station.adjacencyList.add(0, stations.get(stations.size()-1));
+                stations.get(stations.size()-1).adjacencies.set(1, station);
+                station.adjacencies.add(0, stations.get(stations.size()-1));
             }
 
-            station.adjacencyList.add(null);
-
-            station.linkedLines = xfer;
+            station.adjacencies.add(null);
+            station.linkedLines = transfers;
             stations.add(station);
-            transfers.add(xfer);
         }
 
         public void extractLine(String filename){
             Parser p = new Parser(filename);
             ArrayList<String> line = p.extractString();
-
             for(String stop : line){
-                String[] halves = stop.split(",", 2);
-                add(halves[0], halves[1]);
+                String[] parts = stop.split(",");
+                if(parts.length == 2) {
+                    add(parts[0], parts[1]);
+                }
             }
-
         }
 
         public void printForward(){
+            int c = 0;
             for (Station station : stations) {
-                //System.out.print(station + " "+station.linkedLines+": "+ station.adjacencyList + " <-> ");
-                System.out.print(station+", ");
+                if(c < stations.size()-1) System.out.print(station+" "+station.adjacencies+", ");
+                if(c == stations.size()-1) System.out.print(station+" "+station.adjacencies);
+                c++;
             }
             System.out.println();
         }
@@ -127,10 +127,8 @@ public class TrainMap {
             return stations;
         }
 
-        public ArrayList<String> transfers(){return transfers;}
     }
 
-    private final ArrayList<Station> VERTICES = new ArrayList<>();
     private final HashMap<Character, TrainLine[]> keyedLines = new HashMap<>();
     TrainMap(){
     }
@@ -140,6 +138,8 @@ public class TrainMap {
         makeLine("A Rockaway Beach");
         makeLine("A Far Rockaway");
         makeLine("C Euclid Av");
+
+        makeLine("T AirTrain");
 
         makeLine("J Cypress Hills");
         makeLine("Z Cypress Hills");
@@ -162,29 +162,27 @@ public class TrainMap {
         makeLine("4 Crown Heights");
         makeLine("5 Flatbush Av");
 
-        consolidate('A');
+
         printMap();
 
+        consolidate('A');
         keyedLines.forEach((K, V) -> {
             replaceDuplicates(K);
             updateAllStationMaps(V);
         });
 
-        printMap();
 
-      /*  keyedLines.forEach((K, V) -> {
-            for(Station v : V[0].stations){
-                System.out.print(v+": ");
-                v.sortedAdjacencies.forEach((Q, W) ->{
-                    System.out.print("("+Q+": "+W[0]+" <-> "+W[1]+"), ");
-                });
-            }
-            System.out.println("\n");
-        });*/
+        //next is to link all stations that connect to each other but have different names
+        wrapUp("0 Connections");
+
+        printMap();
 
     }
 
     public void updateAllStationMaps(TrainLine[] V){
+        //Although the HashMap now has the new stations each station still points to an old and incomplete version of
+        //that station.
+        //The following will make sure each station is adjacent to the correct
         for(int i = 0; i < V[0].stations.size(); i++){
             if(i == 0){
                 updateStationMap(V[0].stations.get(i), null, V[0].stations.get(i+1));
@@ -197,13 +195,13 @@ public class TrainMap {
     }
 
     public void updateStationMap(Station station, Station w0, Station w1){
-        station.sortedAdjacencies.forEach((Q, W)-> {
+        station.keyedAdjacencies.forEach((Q, W)-> {
             W[0] = w0;
             W[1] = w1;
         });
     }
 
-    public TrainLine makeLine(String filename){
+    public void makeLine(String filename){
         TrainLine line = new TrainLine(filename);
         char key = filename.charAt(0);
 
@@ -219,10 +217,10 @@ public class TrainMap {
             keyedLines.put(key, new TrainLine[]{line});
         }
 
-        return line;
+
     }
 
-    public ArrayList<Station> consolidate(char letter){
+    public void consolidate(char letter){
         ArrayList<Station> splitLine = new ArrayList<>();
         TrainLine[] lines = keyedLines.get(letter);
         if(lines.length > 1){
@@ -265,7 +263,8 @@ public class TrainMap {
         TrainLine trainline = trainLines[trainLines.length-1];
         TrainLine[] replacement = new TrainLine[]{trainline};
         keyedLines.replace(letter, replacement);
-        return splitLine;
+
+        //return splitLine;
     }
 
     public void replaceDuplicates(char letter){
@@ -300,10 +299,11 @@ public class TrainMap {
                 for(Station m : merge){
                     if(m != null) {
                         singularity.name = m.name;
-                        Station[] pair = new Station[]{m.adjacencyList.get(0), m.adjacencyList.get(1)};
-                        singularity.adjacencyList.add(pair[0]); singularity.adjacencyList.add(pair[1]);
+                        Station[] pair = new Station[]{m.adjacencies.get(0), m.adjacencies.get(1)};
+                        singularity.adjacencies.add(pair[0]); singularity.adjacencies.add(pair[1]);
                         links.append(m.onLine);
-                        singularity.sortedAdjacencies.put(m.onLine, pair);
+                        singularity.keyedAdjacencies.put(m.onLine, pair);
+
                     }
                 }
                 singularity.linkedLines = links.toString();
@@ -318,6 +318,50 @@ public class TrainMap {
 
             }
         }
+
+    }
+
+    public void wrapUp(String filename){
+        Parser p = new Parser(filename);
+        ArrayList<String> lines = p.extractString();
+        for(String line : lines){
+            String[] array = line.split(",");
+            char key1 = array[1].charAt(0), key2 = array[3].charAt(0);
+
+            if(keyedLines.get(key1) != null && keyedLines.get(key2) != null) {
+                Station s1 = null;
+                for (Station s : keyedLines.get(key1)[0].stations) {
+                    if(s.name.equals(array[0])){
+                        s1 = s;
+                        break;
+                    }
+                }
+
+                Station s2 = null;
+                for (Station s : keyedLines.get(key2)[0].stations) {
+                    if(s.name.equals(array[2])) {
+                        s2 = s;
+                        break;
+                    }
+                }
+
+                if(s1 != null || s2 != null){
+                    assert s1 != null;
+                    assert s2 != null;
+
+                    s1.adjacencies.add(s2);
+                    s2.adjacencies.add(s1);
+
+                    s1.keyedAdjacencies.put(key2, new Station[]{s2});
+                    s2.keyedAdjacencies.put(key1, new Station[]{s1});
+
+                }
+
+            }
+            System.out.println();
+
+        }
+
     }
 
     public void printWithBranches(ArrayList<Station> line){
@@ -325,23 +369,23 @@ public class TrainMap {
         while(current != null){
             System.out.println(current);
 
-            if(current.adjacencyList.size() > 2){
-                Station cur = current.adjacencyList.get(2);
+            if(current.adjacencies.size() > 2){
+                Station cur = current.adjacencies.get(2);
                 while(cur != null){
                     System.out.print(cur+", ");
-                    cur = cur.adjacencyList.get(1);
+                    cur = cur.adjacencies.get(1);
                 }
                 System.out.println();
             }
 
-            current = current.adjacencyList.get(1);
+            current = current.adjacencies.get(1);
         }
         System.out.println();
     }
 
     public void printWithAdj(ArrayList<Station> line){
         for(Station s : line){
-            System.out.println(s+", "+s.adjacencyList);
+            System.out.println(s+", "+s.adjacencies);
         }
         System.out.println();
     }
