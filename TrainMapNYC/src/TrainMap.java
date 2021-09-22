@@ -1,7 +1,4 @@
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference; //TODO: learn more about this
 
 public class TrainMap {
@@ -168,7 +165,7 @@ public class TrainMap {
 
         public int size(){return stations.size();}
 
-        public void print(){
+        public void println(){
             int c = 0;
             for (Station station : stations) {
 
@@ -202,52 +199,15 @@ public class TrainMap {
     TrainMap(){
     }
 
-    private void printFileReverse(String filename){
-        Parser p = new Parser(filename);
-        ArrayList<String> line = p.extractString();
-        for(int i = line.size()-1; i >= 0; i--){
-            System.out.println(line.get(i));
-        }
-    }
+    public void graph(String filename){
 
-    public void makeBrooklyn(){
-
-        Parser p = new Parser("0 Brooklyn Lines");
-        ArrayList<String> line = p.extractString();
-        for(String s : line){
-            makeLine(s);
-        }
-
-/*
-        makeLine("A Far Rockaway");
-        makeLine("C Euclid Av");
-
-        makeLine("J Cypress Hills");
-        makeLine("Z Cypress Hills");
-        makeLine("M Metropolitan Av");
-
-        makeLine("L Canarsie");
-
-        makeLine("F Coney Island");
-        makeLine("G Greenpoint");
-
-        makeLine("R Bay Ridge");
-        makeLine("Q Coney Island");
-        makeLine("B Brighton Beach");
-        makeLine("D Coney Island");
-        makeLine("N Coney Island");
-
-        makeLine("2 Flatbush Av");
-        makeLine("3 New Lots Av");
-        makeLine("4 Crown Heights");
-        makeLine("5 Flatbush Av");*/
+        makeMap(filename);
 
         constructGraph();
 
     }
 
     public void constructGraph(){
-        printMapArray(original_lines);
 
         original_lines.forEach((K, V)->{
             consolidate(K);
@@ -268,11 +228,10 @@ public class TrainMap {
 
         final_lines.forEach((key, line) -> VERTICES.addAll(line.stations));
 
-        printMap(final_lines);
     }
 
     private void updateAdjWithDifferentNames(){
-        Parser p = new Parser("0 Connections");
+        Parser p = new Parser("Brooklyn Connections");
         ArrayList<String> line = p.extractString();
         for(String connections : line){
             String[] parts = connections.split(",");
@@ -371,35 +330,48 @@ public class TrainMap {
         united_intermediate.add(consolidation);
     }
 
-    private void makeLine(String filename){
-        TrainLine line = new TrainLine(filename);
-        char key = filename.charAt(0);
-
-        if(original_lines.get(key) != null){
-            TrainLine[] old = original_lines.get(key);
-            TrainLine[] array = new TrainLine[old.length+1];
-
-            System.arraycopy(old, 0, array, 0, old.length);
-            array[array.length-1] = line;
-
-            original_lines.replace(key, array);
-        }else{
-            original_lines.put(key, new TrainLine[]{line});
-        }
+    private void makeLine(String filename, ArrayList<String> line){
+        TrainLine trainLine = new TrainLine(line);
+        char key = filename.charAt(1);
+        original_lines.put(key, new TrainLine[]{trainLine});
     }
 
+    private void makeMap(String filename){
+
+        Parser p = new Parser(filename);
+        ArrayList<String> strings = p.extractString();
+
+        String cap = "<", bot = ">";
+        for(int i = 0; i < strings.size(); i++){
+            String string = strings.get(i);
+            ArrayList<String> line = new ArrayList<>();
+            String lineName = "";
+            if(string.equals(cap)){
+                lineName = strings.get(i-1);
+                String current = strings.get(i+1); i+=2;
+                while(!current.equals(bot)){
+                    line.add(current);
+                    current = strings.get(i);
+                    i++;
+                }
+                makeLine(lineName, line);
+                i--;
+            }
+
+        }
+    }
 
     public void printMapArray(HashMap<Character, TrainLine[]> trainMap){
         trainMap.forEach((K, V) -> {
             if(V.length ==1) {
                 System.out.print(K + "|| ");
                 for (TrainLine tl : V) {
-                    tl.print();
+                    tl.println();
                 }
             }else{
                 System.out.println(K + "|| ");
                 for (TrainLine tl : V) {
-                    tl.print();
+                    tl.println();
                 }
             }
         });
@@ -410,13 +382,30 @@ public class TrainMap {
     public void printMap(HashMap<Character, TrainLine> trainMap) {
         trainMap.forEach((K, V) -> {
             System.out.print(K + "|| ");
-            V.print();
+            V.println();
         });
+    }
+
+    public void printMap(){
+        final_lines.forEach((K, V) -> {
+            System.out.print(K + "|| ");
+            V.println();
+            System.out.println();
+        });
+    }
+
+    private void printFileReverse(String filename){
+        Parser p = new Parser(filename);
+        ArrayList<String> line = p.extractString();
+        for(int i = line.size()-1; i >= 0; i--){
+            System.out.println(line.get(i));
+        }
     }
 
     public static void main(String[] args){
         TrainMap Brooklyn = new TrainMap();
-        Brooklyn.makeBrooklyn();
+        Brooklyn.graph("Brooklyn Lines");
+        Brooklyn.printMap();
     }
 
 }
