@@ -73,7 +73,7 @@ public class TrainMap {
             if(adjacencies.contains(s)) return;
             adjacencies.add(s);
         }
-        
+
     }
 
     private static class TrainLine {
@@ -81,6 +81,15 @@ public class TrainMap {
 
         TrainLine(){
 
+        }
+
+        TrainLine(ArrayList<String> line){
+            for(String stop : line){
+                String[] parts = stop.split(",");
+                if(parts.length == 2) {
+                    add(parts[0], parts[1]);
+                }
+            }
         }
 
         TrainLine(String filename){
@@ -146,10 +155,7 @@ public class TrainMap {
             return -1;
         }
 
-
-        public int size(){return stations.size();}
-
-        public void extractLine(String filename){
+        private void extractLine(String filename){
             Parser p = new Parser(filename);
             ArrayList<String> line = p.extractString();
             for(String stop : line){
@@ -159,6 +165,8 @@ public class TrainMap {
                 }
             }
         }
+
+        public int size(){return stations.size();}
 
         public void print(){
             int c = 0;
@@ -204,6 +212,13 @@ public class TrainMap {
 
     public void makeBrooklyn(){
 
+        Parser p = new Parser("0 Brooklyn Lines");
+        ArrayList<String> line = p.extractString();
+        for(String s : line){
+            makeLine(s);
+        }
+
+/*
         makeLine("A Far Rockaway");
         makeLine("C Euclid Av");
 
@@ -225,45 +240,51 @@ public class TrainMap {
         makeLine("2 Flatbush Av");
         makeLine("3 New Lots Av");
         makeLine("4 Crown Heights");
-        makeLine("5 Flatbush Av");
+        makeLine("5 Flatbush Av");*/
 
+        constructGraph();
+
+    }
+
+    public void constructGraph(){
         printMapArray(original_lines);
 
         original_lines.forEach((K, V)->{
-            TrainLine consolidation = consolidate(K);
-            unsortedLinkMerge(consolidation);
+            consolidate(K);
         });
 
         overwriteAllDuplicates();
 
-        updateAllAdj();
+        updateAllAdjacencies();
 
+        //Take each TrainLine in the intermediate arraylist and put it into a character keyed hashmap
         AtomicReference<Integer> c = new AtomicReference<>(0);
         original_lines.forEach((key, line) -> {
             final_lines.put(key, united_intermediate.get(c.get()));
             c.getAndSet(c.get() + 1);
         });
 
+        updateAdjWithDifferentNames();
 
+        final_lines.forEach((key, line) -> VERTICES.addAll(line.stations));
+
+        printMap(final_lines);
+    }
+
+    private void updateAdjWithDifferentNames(){
         Parser p = new Parser("0 Connections");
         ArrayList<String> line = p.extractString();
         for(String connections : line){
             String[] parts = connections.split(",");
             String stationName1 = parts[0], stationName2 = parts[2];
-            char link1 = parts[2].charAt(0), link2 = parts[3].charAt(0);
+            char link1 = parts[1].charAt(0), link2 = parts[3].charAt(0);
 
-
-
-
+            if(final_lines.get(link1) != null && final_lines.get(link1).get(stationName1) != null &&
+                    final_lines.get(link2) != null && final_lines.get(link2).get(stationName2) != null){
+                Objects.requireNonNull(final_lines.get(link1).get(stationName1)).adjacencies.add( final_lines.get(link2).get(stationName2));
+                Objects.requireNonNull(final_lines.get(link2).get(stationName2)).adjacencies.add( final_lines.get(link1).get(stationName1));
+            }
         }
-
-        System.out.println();
-        for(TrainLine tl : united_intermediate){
-            tl.printWithAdj();
-        }
-        System.out.println();
-
-        printMap(final_lines);
     }
 
     private void overwriteAllDuplicates(){
@@ -283,7 +304,7 @@ public class TrainMap {
         }
     }
 
-    private void updateAllAdj(){
+    private void updateAllAdjacencies(){
         for (TrainLine united_line : united_intermediate) {
             for (int j = 0; j < united_line.size(); j++) {
                 Station current = united_line.get(j);
@@ -302,7 +323,7 @@ public class TrainMap {
         }
     }
 
-    private TrainLine consolidate(char key){
+    private void consolidate(char key){
 
         TrainLine currentLine = original_lines.get(key)[0];
         TrainLine consolidation = new TrainLine();
@@ -318,12 +339,12 @@ public class TrainMap {
                     TrainLine otherLine = original_lines.get(link)[0];
 
                     for(Station otherStation : otherLine.stations){
-
                         if(otherStation.name.equals(currentStation.name)){
                             brandNew.linkedLines = currentLinks + key;
                             break;
                         }
                     }
+
                 }else{
                     brandNew.linkedLines = ""+key;
                 }
@@ -331,11 +352,6 @@ public class TrainMap {
 
             consolidation.add(brandNew);
         }
-
-        return consolidation;
-    }
-
-    private void unsortedLinkMerge(TrainLine consolidation){
 
         for(int i = 0; i < consolidation.size(); i++){
             Station con = consolidation.get(i);
@@ -353,7 +369,6 @@ public class TrainMap {
         }
 
         united_intermediate.add(consolidation);
-
     }
 
     private void makeLine(String filename){
