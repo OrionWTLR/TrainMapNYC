@@ -1,105 +1,153 @@
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference; //TODO: learn more about this
 
 public class TrainMap {
 
-    private static class    Station{
+    private static class Station{
         private String name;
-        private char onLine;
         private String linkedLines;
-        private ArrayList<Station> adjacencies = new ArrayList<>();
-        private final HashMap<Character, Station[]> KEYED_ADJACENCIES = new HashMap<>();
+        private final ArrayList<Station> adjacencies = new ArrayList<>();
+        private final HashSet<String> adjNames = new HashSet<>();
+        private boolean visited = false;
 
         Station(){
         }
         Station(String n){
             this.name = n;
         }
-        Station(String n, Station prv, Station nxt){
-            this.name = n;
-            adjacencies.add(prv); adjacencies.add(nxt);
-        }
-        Station(String n, Station[] adj){
-            this.name = n;
-
-            ArrayList<Station> set = new ArrayList<>();
-            for(Station a : adj){
-                if(!set.contains(a)){
-                    set.add(a);
-                }
-            }
-
-            adjacencies.addAll(set);
-        }
-        Station(String n, ArrayList<Station> adj){
-            this.name = n;
-            this.adjacencies = adj;
-        }
-        Station(String n, char ol){
-            this.name = n;
-            this.onLine = ol;
-        }
 
         public String toString(){return ""+name+" "+linkedLines+"";}
-        public void print(){System.out.print(toString()+", ");}
-        //this may be broken if names are supposed to be the same
-        public boolean equals(Station station){return name.equals(station.name);}
+        public boolean equals(Station station){
 
-        public Station next(){return adjacencies.get(1);}
-        public Station prev(){return adjacencies.get(0);}
+            if(name.equals(station.name)){
 
-        public void setNext(Station station){
-            adjacencies.set(1, station);}
-        public void setPrev(Station station){
-            adjacencies.set(0, station);}
+                if(linkedLines == null && station.linkedLines == null){
+                    return true;
+                }else if(linkedLines != null && station.linkedLines != null) {
+                    return isAnagram(station);
+                }
 
-        public void addAdj(Station station){
-            if(station == null) {
-                adjacencies.add(null); return;}
+            }
 
-            if(adjacencies.contains(station)) return;
+            return false;
+        }
 
-            for(Station s : adjacencies){
-                if(s != null && s.equals(station)){
-                    return;
+        public boolean isAnagram(Station other){
+
+            if(linkedLines.length() != other.linkedLines.length()) return false;
+
+            boolean[] hasCharI = new boolean[linkedLines.length()];
+            for(int i = 0; i < linkedLines.length(); i++){
+                boolean hasCharJ = false;
+                for(int j = 0; j < other.linkedLines.length(); j++){
+                    if(linkedLines.charAt(i) == other.linkedLines.charAt(j)){
+                        hasCharJ = true; break;
+                    }
+                }
+                hasCharI[i] = hasCharJ;
+            }
+
+            for(boolean b : hasCharI) {
+                if(!b) return false;
+            }
+
+            return true;
+        }
+
+        public void addAdj(Station s){
+
+            if(s != null && adjNames.contains(s.name)){
+                for(int i = 0; i < adjacencies.size(); i++){
+                    if(adjacencies.get(i) != null && adjacencies.get(i).name.equals(s.name)){
+                        adjacencies.set(i, s);
+                    }
                 }
             }
-            adjacencies.add(station);
+
+            if(s != null) adjNames.add(s.name);
+            if(s == null) adjNames.add(null);
+
+            if(adjacencies.contains(s)) return;
+            adjacencies.add(s);
         }
-        public void addAdj(ArrayList<Station> stations){
-            for(Station s : stations){
-                addAdj(s);
-            }
-        }
-        public void addAdj(Station[] stations){
-            for(Station s : stations){
-                addAdj(s);
-            }
-        }
+        
     }
 
     private static class TrainLine {
-        private final String FILE_NAME;
-        private final ArrayList<Station> STATIONS = new ArrayList<>();
+        private final ArrayList<Station> stations = new ArrayList<>();
+
+        TrainLine(){
+
+        }
 
         TrainLine(String filename){
-            FILE_NAME = filename;
             extractLine(filename);
         }
 
+        public void add(Station station){
+            for(Station s : stations){
+                if(s.name.equals(station.name)) return;
+            }
+
+            stations.add(station);
+        }
+
         public void add(String name, String transfers){
-            Station station = new Station(name, FILE_NAME.charAt(0));
-            if(STATIONS.size() == 0){
+            Station station = new Station(name);
+            if(stations.size() == 0){
                 station.adjacencies.add(null);
             }else{
-                STATIONS.get(STATIONS.size()-1).adjacencies.set(1, station);
-                station.adjacencies.add(0, STATIONS.get(STATIONS.size()-1));
+                stations.get(stations.size()-1).adjacencies.set(1, station);
+                station.adjacencies.add(0, stations.get(stations.size()-1));
             }
 
             station.adjacencies.add(null);
             station.linkedLines = transfers;
-            STATIONS.add(station);
+            stations.add(station);
         }
+
+        public Station get(int i){
+            return stations.get(i);
+        }
+
+        public Station get(String name){
+            for(Station s : stations) if(s.name.equals(name)) return s;
+            return null;
+        }
+
+        public boolean contains(Station target){
+            for(Station s : stations){
+                if(s.equals(target)) return true;
+            }
+
+            return false;
+        }
+
+        public void replaceIfNotVisited(int index, Station replacement){
+            if(index < 0) return;
+
+            if(!stations.get(index).visited) stations.set(index, replacement);
+
+        }
+
+
+        public int indexOfByName(Station target){
+            if(contains(target)){
+                int i = 0;
+                while(i < stations.size()){
+                    if(stations.get(i).equals(target)) break;
+                    i++;
+                }
+                return i;
+            }
+            return -1;
+        }
+
+
+        public int size(){return stations.size();}
 
         public void extractLine(String filename){
             Parser p = new Parser(filename);
@@ -112,35 +160,52 @@ public class TrainMap {
             }
         }
 
-        public void printForward(){
+        public void print(){
             int c = 0;
-            for (Station station : STATIONS) {
-                if(c < STATIONS.size()-1) System.out.print(station+" "+station.adjacencies+", ");
-                if(c == STATIONS.size()-1) System.out.print(station+" "+station.adjacencies);
+            for (Station station : stations) {
+
+                if(c < stations.size()-1) System.out.print(station+", ");
+                if(c == stations.size()-1) System.out.print(station);
                 c++;
             }
             System.out.println();
         }
 
+        public void printWithAdj(){
+            int c = 0;
+            for (Station station : stations) {
+                if(c < stations.size()-1) System.out.print(station+" "+station.adjacencies+", ");
+                if(c == stations.size()-1) System.out.print(station+" "+station.adjacencies);
+                   c++;
+            }
+            System.out.println();
+        }
 
         public ArrayList<Station> stations(){
-            return STATIONS;
+            return stations;
         }
 
     }
 
-    private final HashMap<Character, TrainLine[]> KEYED_LINES = new HashMap<>();
+    private final HashMap<Character, TrainLine[]> original_lines = new HashMap<>();
+    private final ArrayList<TrainLine> united_intermediate = new ArrayList<>();
+    private final HashMap<Character, TrainLine> final_lines = new HashMap<>();
     private final ArrayList<Station> VERTICES = new ArrayList<>();
     TrainMap(){
     }
 
+    private void printFileReverse(String filename){
+        Parser p = new Parser(filename);
+        ArrayList<String> line = p.extractString();
+        for(int i = line.size()-1; i >= 0; i--){
+            System.out.println(line.get(i));
+        }
+    }
+
     public void makeBrooklyn(){
-        makeLine("A Ozone Park");
-        makeLine("A Rockaway Beach");
+
         makeLine("A Far Rockaway");
         makeLine("C Euclid Av");
-
-        makeLine("T AirTrain");
 
         makeLine("J Cypress Hills");
         makeLine("Z Cypress Hills");
@@ -151,10 +216,9 @@ public class TrainMap {
         makeLine("F Coney Island");
         makeLine("G Greenpoint");
 
+        makeLine("R Bay Ridge");
         makeLine("Q Coney Island");
         makeLine("B Brighton Beach");
-
-        makeLine("R Bay Ridge");
         makeLine("D Coney Island");
         makeLine("N Coney Island");
 
@@ -163,253 +227,176 @@ public class TrainMap {
         makeLine("4 Crown Heights");
         makeLine("5 Flatbush Av");
 
+        printMapArray(original_lines);
 
-        printMap();
+        original_lines.forEach((K, V)->{
+            TrainLine consolidation = consolidate(K);
+            unsortedLinkMerge(consolidation);
+        });
 
-        consolidate('A');
-        KEYED_LINES.forEach((K, V) -> {
-            replaceDuplicates(K);
-            updateAllStationMaps(V);
+        overwriteAllDuplicates();
+
+        updateAllAdj();
+
+        AtomicReference<Integer> c = new AtomicReference<>(0);
+        original_lines.forEach((key, line) -> {
+            final_lines.put(key, united_intermediate.get(c.get()));
+            c.getAndSet(c.get() + 1);
         });
 
 
-        //next is to link all stations that connect to each other but have different names
-        wrapUp("0 Connections");
+        Parser p = new Parser("0 Connections");
+        ArrayList<String> line = p.extractString();
+        for(String connections : line){
+            String[] parts = connections.split(",");
+            String stationName1 = parts[0], stationName2 = parts[2];
+            char link1 = parts[2].charAt(0), link2 = parts[3].charAt(0);
 
-        printMap();
 
-        KEYED_LINES.forEach((K,V) -> VERTICES.addAll(V[0].STATIONS));
 
+
+        }
+
+        System.out.println();
+        for(TrainLine tl : united_intermediate){
+            tl.printWithAdj();
+        }
+        System.out.println();
+
+        printMap(final_lines);
     }
 
-    public void updateAllStationMaps(TrainLine[] V){
-        //Although the HashMap now has the new stations each station still points to an old and incomplete version of
-        //that station.
-        //The following will make sure each station is adjacent to the correct
-        for(int i = 0; i < V[0].STATIONS.size(); i++){
-            if(i == 0){
-                updateStationMap(V[0].STATIONS.get(i), null, V[0].STATIONS.get(i+1));
-            }else if(i == V[0].STATIONS.size()-1){
-                updateStationMap(V[0].STATIONS.get(i), V[0].STATIONS.get(i-1), null);
-            }else{
-                updateStationMap(V[0].STATIONS.get(i), V[0].STATIONS.get(i-1), V[0].STATIONS.get(i+1));
+    private void overwriteAllDuplicates(){
+        for(int i = 0; i < united_intermediate.size(); i++) {
+            for (int j = 0; j < united_intermediate.get(i).size(); j++) {
+
+                Station overwrite = united_intermediate.get(i).get(j);
+                overwrite.visited = true;
+
+                for (TrainLine tl : united_intermediate) {
+                    if (tl.contains(overwrite)) {
+                        int indexByName = tl.indexOfByName(overwrite);
+                        tl.replaceIfNotVisited(indexByName, overwrite);
+                    }
+                }
             }
         }
     }
 
-    public void updateStationMap(Station station, Station w0, Station w1){
-        station.KEYED_ADJACENCIES.forEach((Q, W)-> {
-            W[0] = w0;
-            W[1] = w1;
-        });
+    private void updateAllAdj(){
+        for (TrainLine united_line : united_intermediate) {
+            for (int j = 0; j < united_line.size(); j++) {
+                Station current = united_line.get(j);
+
+                if (j == 0) {
+                    current.addAdj(null);
+                    current.addAdj(united_line.get(j + 1));
+                } else if (j == united_line.size() - 1) {
+                    current.addAdj(null);
+                    current.addAdj(united_line.get(j - 1));
+                } else {
+                    current.addAdj(united_line.get(j - 1));
+                    current.addAdj(united_line.get(j + 1));
+                }
+            }
+        }
     }
 
-    public void makeLine(String filename){
+    private TrainLine consolidate(char key){
+
+        TrainLine currentLine = original_lines.get(key)[0];
+        TrainLine consolidation = new TrainLine();
+        for(Station currentStation : currentLine.stations){
+
+            String currentLinks = currentStation.linkedLines;
+            Station brandNew = new Station(currentStation.name);
+
+            for(int i = 0; i < currentLinks.length(); i++){
+                char link = currentLinks.charAt(i);
+
+                if(link != '!' && original_lines.get(link) != null) {
+                    TrainLine otherLine = original_lines.get(link)[0];
+
+                    for(Station otherStation : otherLine.stations){
+
+                        if(otherStation.name.equals(currentStation.name)){
+                            brandNew.linkedLines = currentLinks + key;
+                            break;
+                        }
+                    }
+                }else{
+                    brandNew.linkedLines = ""+key;
+                }
+            }
+
+            consolidation.add(brandNew);
+        }
+
+        return consolidation;
+    }
+
+    private void unsortedLinkMerge(TrainLine consolidation){
+
+        for(int i = 0; i < consolidation.size(); i++){
+            Station con = consolidation.get(i);
+            if(i == 0){
+                con.addAdj(null);
+                con.addAdj(consolidation.get(i+1));
+            }else if(i == consolidation.size()-1){
+                con.addAdj(consolidation.get(i-1));
+                con.addAdj(null);
+            }else{
+                con.addAdj(consolidation.get(i-1));
+                con.addAdj(consolidation.get(i+1));
+            }
+
+        }
+
+        united_intermediate.add(consolidation);
+
+    }
+
+    private void makeLine(String filename){
         TrainLine line = new TrainLine(filename);
         char key = filename.charAt(0);
 
-        if(KEYED_LINES.get(key) != null){
-            TrainLine[] old = KEYED_LINES.get(key);
+        if(original_lines.get(key) != null){
+            TrainLine[] old = original_lines.get(key);
             TrainLine[] array = new TrainLine[old.length+1];
 
             System.arraycopy(old, 0, array, 0, old.length);
             array[array.length-1] = line;
 
-            KEYED_LINES.replace(key, array);
+            original_lines.replace(key, array);
         }else{
-            KEYED_LINES.put(key, new TrainLine[]{line});
+            original_lines.put(key, new TrainLine[]{line});
         }
-
-
     }
 
-    public void consolidate(char letter){
-        ArrayList<Station> splitLine = new ArrayList<>();
-        TrainLine[] lines = KEYED_LINES.get(letter);
-        if(lines.length > 1){
-            int start = 0;
-            int end = 0;
-            for(TrainLine line : lines){
-                if(end < line.STATIONS.size()) end = line.STATIONS.size();
-            }
 
-            for(int i = 0; i < end; i++) {
-                boolean rolling = true;
-
-                for(int j = start; j < lines.length; j++){
-
-                    if(j < lines.length-1 && !lines[j].STATIONS.get(i).equals(lines[j+1].STATIONS.get(i))){
-                        rolling = false;
-                    }
-
-                    if(j == lines.length-1 && rolling) {
-                        splitLine.add(lines[j].STATIONS.get(i));
-                    }
-
-                    if(!rolling){
-                        splitLine.get(splitLine.size()-1).addAdj(lines[j].STATIONS.get(i));
-                        break;
-                    }
-
-                }
-
-                if(!rolling) {
-                    i--;
-                    start++;
-                }
-
-            }
-
-        }
-
-        TrainLine[] trainLines = KEYED_LINES.get(letter);
-        TrainLine trainline = trainLines[trainLines.length-1];
-        TrainLine[] replacement = new TrainLine[]{trainline};
-        KEYED_LINES.replace(letter, replacement);
-
-        //return splitLine;
-    }
-
-    public void replaceDuplicates(char letter){
-
-        TrainLine trainline = KEYED_LINES.get(letter)[0];
-        for(Station s : trainline.STATIONS){
-            if(!s.linkedLines.equals("!")){
-
-                Station[] merge = new Station[(s.linkedLines.length()+1)];
-                merge[0] = s;
-                int j = 1;
-
-                for(int i = 0; i < s.linkedLines.length(); i++){
-                    char c = s.linkedLines.charAt(i);
-                    TrainLine[] tmp = KEYED_LINES.get(c);
-
-                    if(tmp == null) break;
-
-                    TrainLine tl = tmp[0];
-
-                    for (Station x : tl.STATIONS) {
-                        if(s.name.equals(x.name)) {
-                            merge[j] = x;
-                            j++;
-                        }
-                    }
-                }
-
-                Station singularity = new Station();
-                StringBuilder links = new StringBuilder();
-
-                for(Station m : merge){
-                    if(m != null) {
-                        singularity.name = m.name;
-                        Station[] pair = new Station[]{m.adjacencies.get(0), m.adjacencies.get(1)};
-                        singularity.adjacencies.add(pair[0]); singularity.adjacencies.add(pair[1]);
-                        links.append(m.onLine);
-                        singularity.KEYED_ADJACENCIES.put(m.onLine, pair);
-
-                    }
-                }
-                singularity.linkedLines = links.toString();
-
-
-                for(Station m : merge){
-                    if(m != null && KEYED_LINES.get(m.onLine) != null) {
-                        int indexM = KEYED_LINES.get(m.onLine)[0].STATIONS.indexOf(m);
-                        KEYED_LINES.get(m.onLine)[0].STATIONS.set(indexM, singularity);
-                    }
-                }
-
-            }
-        }
-
-    }
-
-    public void wrapUp(String filename){
-        Parser p = new Parser(filename);
-        ArrayList<String> lines = p.extractString();
-        for(String line : lines){
-            String[] array = line.split(",");
-            char key1 = array[1].charAt(0), key2 = array[3].charAt(0);
-
-            if(KEYED_LINES.get(key1) != null && KEYED_LINES.get(key2) != null) {
-                Station s1 = null;
-                for (Station s : KEYED_LINES.get(key1)[0].STATIONS) {
-                    if(s.name.equals(array[0])){
-                        s1 = s;
-                        break;
-                    }
-                }
-
-                Station s2 = null;
-                for (Station s : KEYED_LINES.get(key2)[0].STATIONS) {
-                    if(s.name.equals(array[2])) {
-                        s2 = s;
-                        break;
-                    }
-                }
-
-                if(s1 != null || s2 != null){
-                    assert s1 != null;
-                    assert s2 != null;
-
-                    s1.adjacencies.add(s2);
-                    s2.adjacencies.add(s1);
-
-                    s1.KEYED_ADJACENCIES.put(key2, new Station[]{s2});
-                    s2.KEYED_ADJACENCIES.put(key1, new Station[]{s1});
-
-                }
-
-            }
-            System.out.println();
-
-        }
-
-    }
-
-    public void printWithBranches(ArrayList<Station> line){
-        Station current = line.get(0);
-        while(current != null){
-            System.out.println(current);
-
-            if(current.adjacencies.size() > 2){
-                Station cur = current.adjacencies.get(2);
-                while(cur != null){
-                    System.out.print(cur+", ");
-                    cur = cur.adjacencies.get(1);
-                }
-                System.out.println();
-            }
-
-            current = current.adjacencies.get(1);
-        }
-        System.out.println();
-    }
-
-    public void printWithAdj(ArrayList<Station> line){
-        for(Station s : line){
-            System.out.println(s+", "+s.adjacencies);
-        }
-        System.out.println();
-    }
-
-    public void printMap(){
-        KEYED_LINES.forEach((K, V) -> {
+    public void printMapArray(HashMap<Character, TrainLine[]> trainMap){
+        trainMap.forEach((K, V) -> {
             if(V.length ==1) {
                 System.out.print(K + "|| ");
                 for (TrainLine tl : V) {
-                    tl.printForward();
+                    tl.print();
                 }
             }else{
                 System.out.println(K + "|| ");
                 for (TrainLine tl : V) {
-                    tl.printForward();
+                    tl.print();
                 }
             }
-
         });
 
         System.out.println("--");
+    }
+
+    public void printMap(HashMap<Character, TrainLine> trainMap) {
+        trainMap.forEach((K, V) -> {
+            System.out.print(K + "|| ");
+            V.print();
+        });
     }
 
     public static void main(String[] args){
